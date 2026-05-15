@@ -1,0 +1,73 @@
+@dp.message(F.text == "/start")
+async def start(message: Message):
+
+    text = (
+        "🎧 <b>Pepe Music Bot</b>\n\n"
+        "Команды:\n"
+        "/search название\n\n"
+        "Пример:\n"
+        "/search drake"
+    )
+
+    await message.answer(text)
+
+
+# ---------------------------------------------------------
+
+
+@dp.message(F.text.startswith("/search"))
+async def search_music(message: Message):
+
+    query = message.text.replace("/search", "").strip()
+
+    if not query:
+        await message.answer(
+            "❌ Введи запрос\n\n"
+            "Пример:\n"
+            "/search eminem"
+        )
+        return
+
+    results = db.search_music(query)
+
+    if not results:
+        await message.answer("😔 Ничего не найдено")
+        return
+
+    for track in results:
+
+        text = (
+            f"🎵 <b>{track['title']}</b>\n"
+            f"👤 {track['artist'] or 'Unknown'}\n"
+            f"🔥 Plays: {track['plays']}"
+        )
+
+        await message.answer(
+            text,
+            reply_markup=play_keyboard(track["id"])
+        )
+
+
+# ---------------------------------------------------------
+
+
+@dp.callback_query(F.data.startswith("play:"))
+async def play_track(callback: CallbackQuery):
+
+    music_id = int(callback.data.split(":")[1])
+
+    track = db.get_music(music_id)
+
+    if not track:
+        await callback.answer("❌ Трек не найден")
+        return
+
+    db.increment_plays(music_id)
+
+    await callback.message.answer_audio(
+        audio=track["file_id"],
+        title=track["title"],
+        performer=track["artist"] or "Unknown"
+    )
+
+    await callback.answer()
