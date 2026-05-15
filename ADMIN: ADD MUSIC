@@ -1,0 +1,23 @@
+@dp.message(F.audio)
+async def save_music(message: Message):
+
+    audio = message.audio
+
+    title = audio.title or "Unknown"
+    artist = audio.performer or "Unknown"
+    file_id = audio.file_id
+
+    success = db.add_music(
+        title=title,
+        artist=artist,
+        file_id=file_id
+    )
+
+    if success:
+        await message.answer(
+            f"✅ Добавлено:\n"
+            f"{title} — {artist}"
+        )
+    else:
+        await message.answer("⚠️ Трек уже существует")
+
