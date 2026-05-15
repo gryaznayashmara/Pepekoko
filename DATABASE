@@ -25,3 +25,124 @@ class MusicDatabase:
         """)
 
         self.conn.commit()
+# -----------------------------------------------------
+
+    def add_music(
+        self,
+        title: str,
+        artist: str,
+        file_id: str
+    ) -> bool:
+
+        try:
+            cursor = self.conn.cursor()
+
+            cursor.execute("""
+                INSERT OR IGNORE INTO music (
+                    title,
+                    artist,
+                    file_id
+                )
+                VALUES (?, ?, ?)
+            """, (
+                title.strip(),
+                artist.strip(),
+                file_id
+            ))
+
+            self.conn.commit()
+
+            return cursor.rowcount > 0
+
+        except Exception as e:
+            logger.error(f"add_music error: {e}")
+            return False
+
+    # -----------------------------------------------------
+
+    def search_music(
+        self,
+        query: str,
+        limit: int = 10
+    ) -> List[Dict]:
+
+        try:
+            cursor = self.conn.cursor()
+
+            q = f"%{query}%"
+
+            cursor.execute("""
+                SELECT
+                    id,
+                    title,
+                    artist,
+                    file_id,
+                    plays
+                FROM music
+                WHERE
+                    title LIKE ? COLLATE NOCASE
+                    OR artist LIKE ? COLLATE NOCASE
+                ORDER BY plays DESC
+                LIMIT ?
+            """, (q, q, limit))
+
+            rows = cursor.fetchall()
+
+            return [
+                {
+                    "id": row[0],
+                    "title": row[1],
+                    "artist": row[2],
+                    "file_id": row[3],
+                    "plays": row[4]
+                }
+                for row in rows
+            ]
+
+        except Exception as e:
+            logger.error(f"search_music error: {e}")
+            return []
+
+    # -----------------------------------------------------
+
+    def get_music(self, music_id: int):
+
+        cursor = self.conn.cursor()
+
+        cursor.execute("""
+            SELECT
+                id,
+                title,
+                artist,
+                file_id,
+                plays
+            FROM music
+            WHERE id = ?
+        """, (music_id,))
+
+        row = cursor.fetchone()
+
+        if not row:
+            return None
+
+        return {
+            "id": row[0],
+            "title": row[1],
+            "artist": row[2],
+            "file_id": row[3],
+            "plays": row[4]
+        }
+
+    # -----------------------------------------------------
+
+    def increment_plays(self, music_id: int):
+
+        cursor = self.conn.cursor()
+
+        cursor.execute("""
+            UPDATE music
+            SET plays = plays + 1
+            WHERE id = ?
+        """, (music_id,))
+
+        self.conn.commit()
