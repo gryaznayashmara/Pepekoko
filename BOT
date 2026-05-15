@@ -1,0 +1,3 @@
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
+db = MusicDatabase(DB_PATH)
